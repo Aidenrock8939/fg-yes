@@ -1,9 +1,5 @@
-for _, descendant in pairs(workspace:GetDescendants()) do
-    if descendant.Name == "ban" then
-        descendant.Parent:Destroy()
-    end
-end
 local OrionLib = loadstring(game:HttpGet('https://raw.githubusercontent.com/jensonhirst/Orion/main/source'))()
+
 local Window = OrionLib:MakeWindow({
     Name = "SHETGAME",
     HidePremium = false,
@@ -11,14 +7,17 @@ local Window = OrionLib:MakeWindow({
     ConfigFolder = "SHETGAMEConfig",
     IntroEnabled = false
 })
+
 local BlatantTab = Window:MakeTab({Name = "Blatant"})
 local VisualTab = Window:MakeTab({Name = "Visual"})
 local ESPTab = Window:MakeTab({Name = "ESP"})
 local MiscTab = Window:MakeTab({Name = "Misc/Fun"})
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+
 -- Global flags
 getgenv().Noclip = false
 getgenv().FullBright = false
@@ -36,11 +35,14 @@ getgenv().DungeonESP = false
 getgenv().LivingESP = false
 getgenv().TrinketESP = false
 getgenv().RemoveNoSpellZones = false
+
 -- === EXACT TRINKET ESP YOU PROVIDED - TOGGLEABLE & DEATH-PROOF ===
 local trinketConnections = {}
 local trinketInjectionId = nil
+
 local function enableTrinketESP()
     if trinketInjectionId then return end
+
     local trinkets = {
         ["10681298319"] = "Idol",
         ["11468548833"] = "Crucifix",
@@ -56,10 +58,11 @@ local function enableTrinketESP()
     local camera = workspace.CurrentCamera
     local trinketFolder = workspace.Thrown
     local startPosition = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y - 150)
-   
+    
     genv.injections = (genv.injections or 0) + 1
     local currentInject = genv.injections
     trinketInjectionId = currentInject
+
     function screenSpacePosition(position)
         local pos, on = camera:WorldToScreenPoint(position)
         return Vector2.new(pos.X, pos.Y), on
@@ -143,9 +146,11 @@ local function enableTrinketESP()
             drawing:Remove()
         end)
     end
+
     for i, trinket in pairs(trinketFolder:GetChildren()) do
         createTrinketText(trinket)
     end
+
     trinketConnections.childAdded = trinketFolder.ChildAdded:Connect(function(trinket)
         if currentInject ~= genv.injections then
             trinketConnections.childAdded:Disconnect()
@@ -153,6 +158,7 @@ local function enableTrinketESP()
         end
         createTrinketText(trinket)
     end)
+
     trinketConnections.viewport = camera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
         if currentInject ~= genv.injections then
             trinketConnections.viewport:Disconnect()
@@ -161,6 +167,7 @@ local function enableTrinketESP()
         startPosition = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y - 150)
     end)
 end
+
 local function disableTrinketESP()
     if not getgenv().injections then return end
     getgenv().injections = getgenv().injections + 1
@@ -169,6 +176,7 @@ local function disableTrinketESP()
     if trinketConnections.viewport then trinketConnections.viewport:Disconnect() end
     trinketConnections = {}
 end
+
 ESPTab:AddToggle({
     Name = "Trinket ESP (Idol/Crucifix/Aurant)",
     Default = false,
@@ -181,17 +189,20 @@ ESPTab:AddToggle({
         end
     end
 })
+
 LP.CharacterAdded:Connect(function()
     task.wait(1)
     if getgenv().TrinketESP then
         enableTrinketESP()
     end
 end)
+
 LP.CharacterRemoving:Connect(function()
     if getgenv().TrinketESP then
         disableTrinketESP()
     end
 end)
+
 -- === NOCLIP ===
 BlatantTab:AddToggle({
     Name = "Noclip",
@@ -200,6 +211,7 @@ BlatantTab:AddToggle({
         getgenv().Noclip = v
     end
 })
+
 task.spawn(function()
     local part = nil
     local recent = {}
@@ -232,6 +244,7 @@ task.spawn(function()
         end
     end
 end)
+
 -- === FULL BRIGHT ===
 VisualTab:AddToggle({
     Name = "Full Bright",
@@ -247,6 +260,7 @@ VisualTab:AddToggle({
         end
     end
 })
+
 -- === NO BLUR ===
 VisualTab:AddToggle({
     Name = "No Blur",
@@ -255,11 +269,13 @@ VisualTab:AddToggle({
         getgenv().NoBlur = v
     end
 })
+
 RunService.RenderStepped:Connect(function()
     if getgenv().NoBlur and game.Lighting:FindFirstChild("rawr") then
         game.Lighting.rawr:Destroy()
     end
 end)
+
 -- === DUNGEON FLOOR ESP ===
 ESPTab:AddToggle({
     Name = "Dungeon Floor ESP",
@@ -268,6 +284,7 @@ ESPTab:AddToggle({
         getgenv().DungeonESP = v
     end
 })
+
 task.spawn(function()
     local text = Drawing.new("Text")
     text.Center = true
@@ -275,6 +292,7 @@ task.spawn(function()
     text.Font = 1
     text.Size = 50
     text.Color = Color3.new(1,1,1)
+
     local romanValues = {I=1,V=5,X=10,L=50,C=100,D=500,M=1000}
     local function romanToNum(r)
         local num = 0
@@ -286,6 +304,7 @@ task.spawn(function()
         end
         return num
     end
+
     while task.wait(0.1) do
         if getgenv().DungeonESP and workspace:FindFirstChild("DungeonPrize") then
             local floor = workspace.DungeonPrize.Floor.SurfaceGui.Frame.Floor
@@ -302,6 +321,7 @@ task.spawn(function()
         text.Visible = false
     end
 end)
+
 -- === LIVING ESP ===
 ESPTab:AddToggle({
     Name = "Living ESP",
@@ -310,6 +330,7 @@ ESPTab:AddToggle({
         getgenv().LivingESP = v
     end
 })
+
 task.spawn(function()
     local drawings = {}
     RunService.RenderStepped:Connect(function()
@@ -355,6 +376,7 @@ task.spawn(function()
         end
     end)
 end)
+
 LP.CharacterRemoving:Connect(function()
     if getgenv().LivingESP then
         for char, d in pairs(drawings) do
@@ -363,62 +385,73 @@ LP.CharacterRemoving:Connect(function()
         end
     end
 end)
+
 -- === NO STUN ===
 BlatantTab:AddToggle({
     Name = "No Stun",
     Default = false,
     Callback = function(v) getgenv().NoStun = v end
 })
+
 RunService.RenderStepped:Connect(function()
     if getgenv().NoStun and LP.Character and LP.Character:FindFirstChild("Values") then
         LP.Character.Humanoid.WalkSpeed = LP.Character.Values.Running.Value and 26 or 17
         LP.Character.Humanoid.JumpPower = 50
     end
 end)
+
 -- === BLATANT NO STUN ===
 BlatantTab:AddToggle({
     Name = "Blatant No Stun",
     Default = false,
     Callback = function(v) getgenv().BlatantNoStun = v end
 })
+
 RunService.RenderStepped:Connect(function()
     if getgenv().BlatantNoStun and LP.Character then
         LP.Character.Humanoid.WalkSpeed = 26
     end
 end)
+
 -- === NO BLOCK CD ===
 BlatantTab:AddToggle({
     Name = "No Block CD",
     Default = false,
     Callback = function(v) getgenv().NoBlockCD = v end
 })
+
 RunService.RenderStepped:Connect(function()
     if getgenv().NoBlockCD and LP.Character and LP.Character:FindFirstChild("BlockCooldown") then
         LP.Character.BlockCooldown:Destroy()
     end
 end)
+
 -- === ANTI CONFUSE ===
 VisualTab:AddToggle({
     Name = "Anti Confuse",
     Default = false,
     Callback = function(v) getgenv().AntiConfuse = v end
 })
+
 RunService.RenderStepped:Connect(function()
     if getgenv().AntiConfuse and LP.Character and LP.Character:FindFirstChild("Confused") then
         LP.Character.Confused:Destroy()
     end
 end)
+
 -- === NO FALL DAMAGE ===
 BlatantTab:AddToggle({
     Name = "No Fall Damage",
     Default = false,
     Callback = function(v) getgenv().NoFallDamage = v end
 })
+
 RunService.RenderStepped:Connect(function()
     if getgenv().NoFallDamage and game.ReplicatedStorage:FindFirstChild("FallDamage") then
         game.ReplicatedStorage.FallDamage:Destroy()
     end
 end)
+
 -- === ANTI FIRE (DASH SPAM) ===
 MiscTab:AddToggle({
     Name = "Anti Fire (Dash Spam)",
@@ -435,34 +468,40 @@ MiscTab:AddToggle({
         end
     end
 })
+
 -- === ABSOLUTE HEAL ===
 BlatantTab:AddToggle({
     Name = "Absolute Heal",
     Default = false,
     Callback = function(v) getgenv().AbsoluteHeal = v end
 })
+
 RunService.RenderStepped:Connect(function()
     if getgenv().AbsoluteHeal and LP.Character and LP.Character:FindFirstChild("NoAbsoluteHeal") then
         LP.Character.NoAbsoluteHeal:Destroy()
     end
 end)
+
 -- === NO VOID FIRE ===
 BlatantTab:AddToggle({
     Name = "No Void Fire",
     Default = false,
     Callback = function(v) getgenv().NoVoidFire = v end
 })
+
 RunService.RenderStepped:Connect(function()
     if getgenv().NoVoidFire and LP.Character and LP.Character:FindFirstChild("VoidFire") then
         LP.Character.VoidFire:Destroy()
     end
 end)
+
 -- === REVEAL DARK FLAMES ===
 VisualTab:AddToggle({
     Name = "Reveal Dark Flames",
     Default = false,
     Callback = function(v) getgenv().RevealDarkFlames = v end
 })
+
 RunService.RenderStepped:Connect(function()
     if getgenv().RevealDarkFlames then
         for _, obj in workspace.Thrown:GetDescendants() do
@@ -473,6 +512,7 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
+
 -- === REMOVE NO SPELL ZONES ===
 MiscTab:AddToggle({
     Name = "Remove No Spell Zones",
@@ -484,6 +524,7 @@ MiscTab:AddToggle({
         end
     end
 })
+
 -- === NAME CHANGER ===
 MiscTab:AddTextbox({
     Name = "Name Changer",
@@ -494,6 +535,7 @@ MiscTab:AddTextbox({
         end
     end
 })
+
 -- === INSTANT RESET BUTTON ===
 MiscTab:AddButton({
     Name = "Instant Reset",
@@ -503,4 +545,5 @@ MiscTab:AddButton({
         end
     end
 })
+
 OrionLib:Init()
