@@ -554,24 +554,24 @@ local awardConnections = {}
 local function updateESP(part)
     if not part or not part.Parent then return end
     
-    -- Update Highlight colors
+    -- Update Highlight colors (matches the reward's actual color)
     local highlight = part:FindFirstChild("AwardHighlight")
     if highlight and highlight:IsA("Highlight") then
         highlight.FillColor = part.Color
         highlight.OutlineColor = part.Color
     end
     
-    -- Fetch text from original BillboardGui
-    local espText = "Award"  -- Fallback
+    -- Get the real name from the original BillboardGui
+    local espText = "Award"  -- fallback
     local existingBillboard = part:FindFirstChild("BillboardGui")
     if existingBillboard and existingBillboard:IsA("BillboardGui") then
         local textLabel = existingBillboard:FindFirstChild("TextLabel")
-        if textLabel and textLabel:IsA("TextLabel") then
+        if textLabel and textLabel:IsA("TextLabel") and textLabel.Text ~= "" then
             espText = textLabel.Text
         end
     end
     
-    -- Update ESP BillboardGui
+    -- Update our ESP BillboardGui with the real name
     local billboard = part:FindFirstChild("AwardESP")
     if billboard and billboard:IsA("BillboardGui") then
         local espLabel = billboard:FindFirstChildOfClass("TextLabel")
@@ -587,6 +587,12 @@ local function addESP(part)
     
     trackedAwards[part] = true
     
+    -- Hide the original BillboardGui to prevent overlap
+    local existingBillboard = part:FindFirstChild("BillboardGui")
+    if existingBillboard and existingBillboard:IsA("BillboardGui") then
+        existingBillboard.Enabled = false
+    end
+    
     -- Create Highlight
     local highlight = Instance.new("Highlight")
     highlight.Name = "AwardHighlight"
@@ -598,29 +604,36 @@ local function addESP(part)
     highlight.FillColor = part.Color
     highlight.OutlineColor = part.Color
     
-    -- Create ESP BillboardGui
+    -- Create our own clean BillboardGui
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "AwardESP"
     billboard.Adornee = part
     billboard.Size = UDim2.new(0, 200, 0, 50)
-    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)  -- Slightly higher to avoid any clash
     billboard.AlwaysOnTop = true
     billboard.Parent = part
     
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(1, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
-    textLabel.TextSize = 24
+    textLabel.TextSize = 28
     textLabel.Font = Enum.Font.SourceSansBold
-    textLabel.Text = "Award"  -- Initial
+    textLabel.TextStrokeTransparency = 0.5
+    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
     textLabel.Parent = billboard
     
-    -- Initial update
+    -- Initial update (will grab the real name)
     updateESP(part)
 end
 
 local function removeESP(part)
     if part then
+        -- Show the original BillboardGui again
+        local existingBillboard = part:FindFirstChild("BillboardGui")
+        if existingBillboard and existingBillboard:IsA("BillboardGui") then
+            existingBillboard.Enabled = true
+        end
+        
         trackedAwards[part] = nil
         local highlight = part:FindFirstChild("AwardHighlight")
         if highlight then highlight:Destroy() end
@@ -644,7 +657,7 @@ local function enableDungeonRewardESP()
         end
     end)
 
-    -- Initial scan for existing Awards
+    -- Initial scan
     for _, child in ipairs(workspace:GetChildren()) do
         if child.Name == "Award" and child:IsA("BasePart") then
             addESP(child)
