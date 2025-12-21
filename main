@@ -35,6 +35,7 @@ getgenv().DungeonESP = false
 getgenv().LivingESP = false
 getgenv().TrinketESP = false
 getgenv().RemoveNoSpellZones = false
+getgenv().DungeonRewardESP = false
 
 -- === EXACT TRINKET ESP YOU PROVIDED - TOGGLEABLE & DEATH-PROOF ===
 local trinketConnections = {}
@@ -452,9 +453,9 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- === ANTI FIRE (DASH SPAM) ===
-MiscTab:AddToggle({
-    Name = "Anti Fire (Dash Spam)",
+-- === ANTI FIRE ===
+BlatantTab:AddToggle({
+    Name = "Anti Fire",
     Default = false,
     Callback = function(v)
         getgenv().AntiFireDash = v
@@ -545,5 +546,157 @@ MiscTab:AddButton({
         end
     end
 })
+
+-- === DUNGEON REWARD ESP ===
+local trackedAwards = {}
+local awardConnections = {}
+
+local function updateESP(part)
+    if not part or not part.Parent then return end
+    
+    -- Update Highlight colors
+    local highlight = part:FindFirstChild("AwardHighlight")
+    if highlight and highlight:IsA("Highlight") then
+        highlight.FillColor = part.Color
+        highlight.OutlineColor = part.Color
+    end
+    
+    -- Fetch text from original BillboardGui
+    local espText = "Award"  -- Fallback
+    local existingBillboard = part:FindFirstChild("BillboardGui")
+    if existingBillboard and existingBillboard:IsA("BillboardGui") then
+        local textLabel = existingBillboard:FindFirstChild("TextLabel")
+        if textLabel and textLabel:IsA("TextLabel") then
+            espText = textLabel.Text
+        end
+    end
+    
+    -- Update ESP BillboardGui
+    local billboard = part:FindFirstChild("AwardESP")
+    if billboard and billboard:IsA("BillboardGui") then
+        local espLabel = billboard:FindFirstChildOfClass("TextLabel")
+        if espLabel then
+            espLabel.Text = espText
+            espLabel.TextColor3 = part.Color
+        end
+    end
+end
+
+local function addESP(part)
+    if not part or not part:IsA("BasePart") or trackedAwards[part] then return end
+    
+    trackedAwards[part] = true
+    
+    -- Create Highlight
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "AwardHighlight"
+    highlight.Adornee = part
+    highlight.Parent = part
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.FillColor = part.Color
+    highlight.OutlineColor = part.Color
+    
+    -- Create ESP BillboardGui
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "AwardESP"
+    billboard.Adornee = part
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = part
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextSize = 24
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.Text = "Award"  -- Initial
+    textLabel.Parent = billboard
+    
+    -- Initial update
+    updateESP(part)
+end
+
+local function removeESP(part)
+    if part then
+        trackedAwards[part] = nil
+        local highlight = part:FindFirstChild("AwardHighlight")
+        if highlight then highlight:Destroy() end
+        local billboard = part:FindFirstChild("AwardESP")
+        if billboard then billboard:Destroy() end
+    end
+end
+
+local function enableDungeonRewardESP()
+    if awardConnections.childAdded then return end
+
+    awardConnections.childAdded = workspace.ChildAdded:Connect(function(child)
+        if child.Name == "Award" and child:IsA("BasePart") then
+            addESP(child)
+        end
+    end)
+
+    awardConnections.childRemoved = workspace.ChildRemoved:Connect(function(child)
+        if child.Name == "Award" then
+            removeESP(child)
+        end
+    end)
+
+    -- Initial scan for existing Awards
+    for _, child in ipairs(workspace:GetChildren()) do
+        if child.Name == "Award" and child:IsA("BasePart") then
+            addESP(child)
+        end
+    end
+
+    awardConnections.heartbeat = RunService.Heartbeat:Connect(function()
+        for part, _ in pairs(trackedAwards) do
+            if part.Parent then
+                updateESP(part)
+            else
+                removeESP(part)
+            end
+        end
+    end)
+end
+
+local function disableDungeonRewardESP()
+    for part, _ in pairs(trackedAwards) do
+        removeESP(part)
+    end
+    trackedAwards = {}
+    if awardConnections.childAdded then awardConnections.childAdded:Disconnect() end
+    if awardConnections.childRemoved then awardConnections.childRemoved:Disconnect() end
+    if awardConnections.heartbeat then awardConnections.heartbeat:Disconnect() end
+    awardConnections = {}
+end
+
+ESPTab:AddToggle({
+    Name = "Dungeon Reward ESP",
+    Default = false,
+    Callback = function(v)
+        getgenv().DungeonRewardESP = v
+        if v then
+            enableDungeonRewardESP()
+        else
+            disableDungeonRewardESP()
+        end
+    end
+})
+
+LP.CharacterAdded:Connect(function()
+    task.wait(1)
+    if getgenv().DungeonRewardESP then
+        enableDungeonRewardESP()
+    end
+end)
+
+LP.CharacterRemoving:Connect(function()
+    if getgenv().DungeonRewardESP then
+        disableDungeonRewardESP()
+    end
+end)
 
 OrionLib:Init()
